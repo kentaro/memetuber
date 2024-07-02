@@ -8,18 +8,16 @@ interface AnimatorProps {
 }
 
 interface MemeImageProps {
-  image: {
-    id: string;
-    src: string;
-    x: number;
-    y: number;
-    animation: string;
-    selectedAnimation: string;
-    loaded: boolean;
-    isTalking: boolean;
-    width: number;
-    height: number;
-  };
+  id: string;
+  src: string;
+  x: number;
+  y: number;
+  animation: string;
+  selectedAnimation: string;
+  loaded: boolean;
+  isTalking: boolean;
+  width: number;
+  height: number;
   onRemove: (id: string) => void;
   onAnimationChange: (id: string, animation: string) => void;
   onStartTalk: (id: string) => void;
@@ -31,18 +29,7 @@ interface MemeImageProps {
 
 const Animator = ({ className }: AnimatorProps) => {
   const singleLoopAnimations = ['idle', 'walk', 'wave', 'jump', 'spin', 'pulse', 'shake', 'dance'];
-  const [images, setImages] = useState<Array<{
-    id: string;
-    src: string;
-    x: number;
-    y: number;
-    animation: string;
-    selectedAnimation: string;
-    loaded: boolean;
-    isTalking: boolean;
-    width: number;
-    height: number;
-  }>>([]);
+  const [images, setImages] = useState<Array<MemeImageProps>>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -68,7 +55,7 @@ const Animator = ({ className }: AnimatorProps) => {
               height = maxSize;
               width = maxSize * aspectRatio;
             }
-            const newImage = {
+            const newImage: Partial<MemeImageProps> = {
               id: Date.now().toString(),
               src: result,
               x: e.clientX - width / 2,
@@ -80,7 +67,7 @@ const Animator = ({ className }: AnimatorProps) => {
               loaded: true,
               isTalking: false
             };
-            setImages(prev => [...prev, newImage]);
+            setImages(prev => [...prev, newImage as MemeImageProps]);
             console.log('新しい画像が追加されました:', newImage);
           };
           img.src = result;
@@ -151,7 +138,7 @@ const Animator = ({ className }: AnimatorProps) => {
           onStartTalk={startTalk}
           onStopTalk={stopTalk}
           singleLoopAnimations={singleLoopAnimations}
-          onSelect={setSelectedImageId}
+          onSelect={() => setSelectedImageId(image.id)}
           isSelected={selectedImageId === image.id}
         />
       ))}

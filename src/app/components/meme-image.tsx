@@ -50,9 +50,13 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const [isRandomAnimating, setIsRandomAnimating] = useState(false);
+  const [isMicActive, setIsMicActive] = useState(true);
+  const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'none');
 
   const handleAnimationChange = useCallback((animation: string) => {
+    setSelectedAnimation(animation);
     onAnimationChange(image.id, animation);
+    setIsRandomAnimating(animation === 'random');
   }, [image.id, onAnimationChange]);
 
   const startSpeechRecognition = useCallback(() => {
@@ -75,17 +79,28 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
 
       recognitionRef.current.onend = () => {
         setIsSpeaking(false);
+        setIsMicActive(false);
       };
 
       recognitionRef.current.start();
+      setIsMicActive(true);
     } else {
       console.error('Speech recognition not supported');
     }
-  }, []);
+  }, [image.id, onStartTalk, onStopTalk]);
+
+  const restartSpeechRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    startSpeechRecognition();
+    setIsMicActive(true);
+  }, [startSpeechRecognition]);
 
   const stopSpeechRecognition = useCallback(() => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      setIsMicActive(false);
     }
   }, []);
 
@@ -102,16 +117,18 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
 
   useEffect(() => {
     let animationInterval: NodeJS.Timeout;
-    if (isRandomAnimating && isSpeaking) {
+    if (isRandomAnimating) {
       animationInterval = setInterval(() => {
         const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
         onAnimationChange(image.id, randomAnimation);
       }, 2000);
-    } else if (!isSpeaking) {
+    } else if (isSpeaking) {
+      onAnimationChange(image.id, selectedAnimation);
+    } else {
       onAnimationChange(image.id, 'none');
     }
     return () => clearInterval(animationInterval);
-  }, [isRandomAnimating, isSpeaking, image.id, onAnimationChange, singleLoopAnimations]);
+  }, [isRandomAnimating, selectedAnimation, image.id, onAnimationChange, singleLoopAnimations, isSpeaking]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -226,6 +243,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
         border: isSelected ? '2px solid #3b82f6' : 'none',
         cursor: isResizing ? 'nwse-resize' : 'move',
         transform: `rotate(${rotation}deg)`,
+        animation: isSpeaking || isRandomAnimating ? `${selectedAnimation} 1s infinite ease-in-out` : 'none',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
@@ -276,12 +294,12 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       {showMenu && (
         <div className="absolute top-0 right-full mr-2 bg-white shadow-lg rounded p-2 z-10 flex flex-col w-48">
           <div className="mb-2">
-            <h3 className="font-bold mb-1 text-sm text-gray-600">Single Loop Animations</h3>
+            <h3 className="font-bold mb-1 text-sm text-gray-600">アニメーション</h3>
             {singleLoopAnimations.map((anim) => (
               <button
                 key={anim}
                 className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full text-sm capitalize ${
-                  image.selectedAnimation === anim.toLowerCase() ? 'bg-blue-100 font-semibold' : ''
+                  selectedAnimation === anim.toLowerCase() ? 'bg-blue-100 font-semibold' : ''
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -291,38 +309,46 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
                 {anim}
               </button>
             ))}
-          </div>
-          <div className="mb-2">
-            <h3 className="font-bold mb-1 text-sm text-gray-600">Random Loop Animation</h3>
             <button
               className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full text-sm ${
                 isRandomAnimating ? 'bg-blue-100 font-semibold' : ''
               }`}
               onClick={(e) => {
                 e.stopPropagation();
-                toggleRandomAnimation();
+                handleAnimationChange('random');
               }}
             >
-              {isRandomAnimating ? 'Stop Random Animation' : 'Start Random Animation'}
+              Random
             </button>
-            <div className="mt-2 p-2 bg-gray-100 rounded">
-              <p className="text-sm font-semibold">
-                Status: <span className={`${isSpeaking ? 'text-green-600' : 'text-red-600'}`}>
-                  {isSpeaking ? 'Speaking' : 'Not Speaking'}
-                </span>
-              </p>
-              <p className="text-sm font-semibold mt-1">
-                Animation: <span className="text-blue-600">
-                  {isRandomAnimating ? (isSpeaking ? 'Random' : 'Idle') : image.animation}
-                </span>
-              </p>
-            </div>
+          </div>
+          <div className="mb-2">
+            <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>
+            <p className="text-sm mb-1">
+              状態: <span className={`${isSpeaking ? 'text-green-600' : 'text-red-600'}`}>
+                {isSpeaking ? '話し中' : '待機中'}
+              </span>
+            </p>
+            <button
+              className={`text-left px-2 py-1 ${
+                isMicActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              } hover:bg-gray-100 whitespace-nowrap w-full text-sm font-medium rounded`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isMicActive) {
+                  stopSpeechRecognition();
+                } else {
+                  restartSpeechRecognition();
+                }
+              }}
+            >
+              {isMicActive ? 'マイク停止' : 'マイク再開'}
+            </button>
           </div>
           <button
             className="text-left px-2 py-1 bg-red-500 hover:bg-red-600 text-white whitespace-nowrap w-full mt-2 rounded text-sm font-medium"
             onClick={(e) => { e.stopPropagation(); onRemove(image.id); }}
           >
-            Remove Image
+            画像削除
           </button>
         </div>
       )}
