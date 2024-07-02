@@ -122,13 +122,17 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
         const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
         onAnimationChange(image.id, randomAnimation);
       }, 2000);
-    } else if (isSpeaking) {
+    }
+    return () => clearInterval(animationInterval);
+  }, [isRandomAnimating, image.id, onAnimationChange, singleLoopAnimations]);
+
+  useEffect(() => {
+    if (isSpeaking) {
       onAnimationChange(image.id, selectedAnimation);
     } else {
       onAnimationChange(image.id, 'none');
     }
-    return () => clearInterval(animationInterval);
-  }, [isRandomAnimating, selectedAnimation, image.id, onAnimationChange, singleLoopAnimations, isSpeaking]);
+  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
