@@ -357,35 +357,37 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
               <span className="text-sm text-gray-700">常時アニメーション</span>
             </label>
           </div>
-          <div className="mb-2">
-            <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>
-            <div className="flex items-center justify-between bg-gray-100 rounded-lg p-2">
-              <span className={`text-sm font-medium ${
-                speechState === 'speaking' ? 'text-green-600' :
-                speechState === 'active' ? 'text-blue-600' : 'text-gray-600'
-              }`}>
-                {speechState === 'speaking' ? '話し中' :
-                 speechState === 'active' ? '待機中' : '停止中'}
-              </span>
-              <button
-                className={`px-3 py-1 rounded-full text-white text-sm font-medium transition-colors ${
-                  speechState !== 'inactive'
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-green-500 hover:bg-green-600'
-                }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (speechState === 'inactive') {
-                    startSpeechRecognition();
-                  } else {
-                    stopSpeechRecognition();
-                  }
-                }}
-              >
-                {speechState === 'inactive' ? '開始' : '停止'}
-              </button>
+          {image.animationMode !== 'always' && (
+            <div className="mb-2">
+              <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>
+              <div className="flex items-center justify-between bg-gray-100 rounded-lg p-2">
+                <span className={`text-sm font-medium ${
+                  speechState === 'speaking' ? 'text-green-600' :
+                  speechState === 'active' ? 'text-blue-600' : 'text-gray-600'
+                }`}>
+                  {speechState === 'speaking' ? '話し中' :
+                   speechState === 'active' ? '待機中' : '停止中'}
+                </span>
+                <button
+                  className={`px-3 py-1 rounded-full text-white text-sm font-medium transition-colors ${
+                    speechState !== 'inactive'
+                      ? 'bg-red-500 hover:bg-red-600'
+                      : 'bg-green-500 hover:bg-green-600'
+                  }`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (speechState === 'inactive') {
+                      startSpeechRecognition();
+                    } else {
+                      stopSpeechRecognition();
+                    }
+                  }}
+                >
+                  {speechState === 'inactive' ? '開始' : '停止'}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
           <button
             className="text-left px-2 py-1 bg-red-500 hover:bg-red-600 text-white whitespace-nowrap w-full mt-2 rounded text-sm font-medium"
             onClick={(e) => { e.stopPropagation(); onRemove(image.id); }}
