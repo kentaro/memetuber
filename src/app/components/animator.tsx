@@ -25,7 +25,7 @@ interface MemeImageProps {
   singleLoopAnimations: string[];
   onSelect: (id: string) => void;
   isSelected: boolean;
-  animationMode: 'always' | 'onSpeech';
+  animationMode: 'always' | 'speech';
 }
 
 const Animator = ({ className }: AnimatorProps) => {
@@ -67,7 +67,7 @@ const Animator = ({ className }: AnimatorProps) => {
               selectedAnimation: 'talk',
               loaded: true,
               isTalking: false,
-              animationMode: 'onSpeech' // デフォルトは音声認識時のみ
+              animationMode: 'speech' // デフォルトは音声認識時のみ
             };
             setImages(prev => [...prev, newImage as MemeImageProps]);
             console.log('新しい画像が追加されました:', newImage);
@@ -113,7 +113,7 @@ const Animator = ({ className }: AnimatorProps) => {
 
   const toggleAnimationMode = useCallback((id: string) => {
     setImages(prev => prev.map(img =>
-      img.id === id ? { ...img, animationMode: img.animationMode === 'always' ? 'onSpeech' : 'always' } : img
+      img.id === id ? { ...img, animationMode: img.animationMode === 'always' ? 'speech' : 'always' } : img
     ));
   }, []);
 
@@ -152,9 +152,14 @@ const Animator = ({ className }: AnimatorProps) => {
       ))}
       {images.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <p className="text-white text-center text-2xl">
-            画像をここにドラッグ＆ドロップしてください
-          </p>
+          <div className="border-4 border-dashed border-white rounded-lg p-12">
+            <svg className="w-24 h-24 text-white mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            </svg>
+            <p className="text-white text-center text-xl">
+              Drag and drop your image here!
+            </p>
+          </div>
         </div>
       )}
     </div>
