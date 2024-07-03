@@ -74,9 +74,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   }, [image.id, onStopTalk]);
 
   const startSpeechRecognition = useCallback(() => {
-    if (recognitionState !== 'inactive') return;
-
-    setRecognitionState('active');
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognitionAPI();
@@ -107,23 +104,31 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
 
       recognitionRef.current.onend = () => {
         if (recognitionState === 'active') {
-          recognitionRef.current?.start();
-        } else {
-          setRecognitionState('inactive');
+          try {
+            recognitionRef.current?.start();
+          } catch (error) {
+            console.error('Failed to restart speech recognition', error);
+            setRecognitionState('inactive');
+          }
         }
       };
 
-      try {
-        recognitionRef.current.start();
-      } catch (error) {
-        console.error('Failed to start speech recognition', error);
-        setRecognitionState('inactive');
+      if (recognitionState === 'inactive') {
+        try {
+          recognitionRef.current.start();
+          setRecognitionState('active');
+        } catch (error) {
+          console.error('Failed to start speech recognition', error);
+          setRecognitionState('inactive');
+        }
+      } else {
+        console.warn('Speech recognition is already active');
       }
     } else {
       console.error('Speech recognition not supported');
       setRecognitionState('inactive');
     }
-  }, [image.id, onStartTalk, onStopTalk, recognitionState]);
+  }, [image.id, onStartTalk, onStopTalk, stopSpeechRecognition]);
 
   useEffect(() => {
     startSpeechRecognition();
