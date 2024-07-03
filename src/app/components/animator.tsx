@@ -25,6 +25,7 @@ interface MemeImageProps {
   singleLoopAnimations: string[];
   onSelect: (id: string) => void;
   isSelected: boolean;
+  animationMode: 'always' | 'onSpeech';
 }
 
 const Animator = ({ className }: AnimatorProps) => {
@@ -65,7 +66,8 @@ const Animator = ({ className }: AnimatorProps) => {
               animation: 'none',
               selectedAnimation: 'talk',
               loaded: true,
-              isTalking: false
+              isTalking: false,
+              animationMode: 'onSpeech' // デフォルトは音声認識時のみ
             };
             setImages(prev => [...prev, newImage as MemeImageProps]);
             console.log('新しい画像が追加されました:', newImage);
@@ -109,6 +111,12 @@ const Animator = ({ className }: AnimatorProps) => {
     ));
   }, []);
 
+  const toggleAnimationMode = useCallback((id: string) => {
+    setImages(prev => prev.map(img =>
+      img.id === id ? { ...img, animationMode: img.animationMode === 'always' ? 'onSpeech' : 'always' } : img
+    ));
+  }, []);
+
   return (
     <div
       className={`relative w-full h-screen ${className}`}
@@ -139,6 +147,7 @@ const Animator = ({ className }: AnimatorProps) => {
           onStartTalk={startTalk}
           onStopTalk={stopTalk}
           singleLoopAnimations={singleLoopAnimations}
+          toggleAnimationMode={() => toggleAnimationMode(image.id)}
         />
       ))}
       {images.length === 0 && (

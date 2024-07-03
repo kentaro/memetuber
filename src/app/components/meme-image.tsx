@@ -12,12 +12,14 @@ interface MemeImageProps {
     height: number;
     selectedAnimation: string;
     animation?: string;
+    animationMode: 'always' | 'speech';
   };
   onRemove: (id: string) => void;
   onAnimationChange: (id: string, animation: string) => void;
   onStartTalk: (id: string) => void;
   onStopTalk: (id: string) => void;
   singleLoopAnimations: string[];
+  toggleAnimationMode: (id: string) => void;
 }
 
 interface Window {
@@ -39,7 +41,7 @@ interface SpeechRecognitionResult {
   isFinal: boolean;
 }
 
-const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk, singleLoopAnimations }: MemeImageProps) => {
+const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk, singleLoopAnimations, toggleAnimationMode }: MemeImageProps) => {
   const [position, setPosition] = useState({ x: image.x, y: image.y });
   const [size, setSize] = useState({ width: image.width || 200, height: image.height || 200 });
   const [isResizing, setIsResizing] = useState(false);
@@ -50,6 +52,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [speechState, setSpeechState] = useState<'inactive' | 'active' | 'speaking'>('inactive');
   const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   // コンポーネント内で定義
   const debouncedSetIsSpeaking = useCallback(
@@ -210,7 +213,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setIsSelected(true);
-    setShowMenu(prev => !prev);
+    setShowMenu(true);
   }, []);
 
   const handleRotateStart = useCallback((e: React.MouseEvent) => {
@@ -259,6 +262,14 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
     }
   }, [image.animation]);
 
+  useEffect(() => {
+    if (image.animationMode === 'always') {
+      setIsAnimating(true);
+    } else {
+      setIsAnimating(speechState === 'speaking');
+    }
+  }, [image.animationMode, speechState]);
+
   return (
     <div
       ref={imageRef}
@@ -282,7 +293,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           backgroundImage: `url(${image.src})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          animation: speechState === 'speaking' && selectedAnimation !== 'none'
+          animation: isAnimating && selectedAnimation !== 'none'
             ? `${selectedAnimation} 0.5s ease-in-out infinite`
             : 'none',
         }}
@@ -294,12 +305,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
             onClick={(e) => { e.stopPropagation(); onRemove(image.id); }}
           >
             <X size={16} />
-          </button>
-          <button
-            className="absolute top-0 left-0 bg-blue-500 text-white p-1 rounded-br"
-            onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-          >
-            {showMenu ? <X size={16} /> : <Menu size={16} />}
           </button>
           <div
             className="absolute bottom-0 right-0 w-6 h-6 bg-blue-500 rounded-tl flex items-center justify-center cursor-nwse-resize"
@@ -336,6 +341,21 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
                 {anim}
               </button>
             ))}
+          </div>
+          <div className="mb-2">
+            <h3 className="font-bold mb-1 text-sm text-gray-600">アニメーションモード</h3>
+            <label className="flex items-center space-x-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={image.animationMode === 'always'}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  toggleAnimationMode(image.id);
+                }}
+                className="form-checkbox h-4 w-4 text-blue-600 transition duration-150 ease-in-out"
+              />
+              <span className="text-sm text-gray-700">常時アニメーション</span>
+            </label>
           </div>
           <div className="mb-2">
             <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>
