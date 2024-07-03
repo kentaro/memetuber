@@ -28,7 +28,7 @@ interface MemeImageProps {
 }
 
 const Animator = ({ className }: AnimatorProps) => {
-  const singleLoopAnimations = ['idle', 'walk', 'wave', 'jump', 'spin', 'pulse', 'shake', 'dance'];
+  const singleLoopAnimations = ['idle', 'walk', 'wave', 'jump', 'spin', 'pulse', 'shake', 'dance', 'talk'];
   const [images, setImages] = useState<Array<MemeImageProps>>([]);
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
@@ -125,6 +125,10 @@ const Animator = ({ className }: AnimatorProps) => {
         @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
         @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
         @keyframes dance { 0%, 100% { transform: skew(0deg, 0deg) scale(1); } 25% { transform: skew(3deg, 3deg) scale(0.95); } 75% { transform: skew(-3deg, -3deg) scale(1.05); } }
+        @keyframes talk {
+          0%, 100% { transform: scaleY(1); }
+          50% { transform: scaleY(1.1); }
+        }
       `}</style>
       {images.map(image => (
         <MemeImage

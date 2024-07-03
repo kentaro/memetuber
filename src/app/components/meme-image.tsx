@@ -101,10 +101,10 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       recognitionRef.current.onresult = (event: any) => {
         const result = event.results[event.results.length - 1];
         if (!result.isFinal) {
-          debouncedSetIsSpeaking(true, image.id);
+          setIsSpeaking(true);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = setTimeout(() => {
-            debouncedSetIsSpeaking(false, image.id);
+            setIsSpeaking(false);
           }, 1000);
         }
       };
@@ -284,7 +284,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           animation: isSpeaking && selectedAnimation !== 'none'
-            ? `${selectedAnimation} 3s ease-in-out infinite`
+            ? `${selectedAnimation} 0.5s ease-in-out infinite`
             : 'none',
         }}
       />
