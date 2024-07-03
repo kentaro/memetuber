@@ -34,8 +34,12 @@ const Animator = ({ className }: AnimatorProps) => {
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
 
   const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+    if (e.preventDefault) {
+      e.preventDefault();
+    }
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
 
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
@@ -152,15 +156,57 @@ const Animator = ({ className }: AnimatorProps) => {
       ))}
       {images.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="border-4 border-dashed border-white rounded-lg p-12">
+          <div
+            className="border-4 border-dashed border-white rounded-lg p-12 cursor-pointer"
+            onClick={() => document.getElementById('fileInput')?.click()}
+          >
             <svg className="w-24 h-24 text-white mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>
             <p className="text-white text-center text-xl">
-              Drag and drop your image here!
+              クリックまたはドラッグ＆ドロップで画像を選択
             </p>
           </div>
+          <input
+            id="fileInput"
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                  if (event.target && typeof event.target.result === 'string') {
+                    const newImage = {
+                      id: Date.now().toString(),
+                      src: event.target.result,
+                      x: window.innerWidth / 2 - 100, // 画面の中央に配置
+                      y: window.innerHeight / 2 - 100, // 画面の中央に配置
+                      width: 200,
+                      height: 200,
+                      isTalking: false,
+                      animation: 'none',
+                      selectedAnimation: 'idle',
+                      animationMode: 'speech',
+                      loaded: true,
+                      onRemove: removeImage,
+                      onAnimationChange: changeAnimation,
+                      onStartTalk: startTalk,
+                      onStopTalk: stopTalk,
+                      singleLoopAnimations: singleLoopAnimations,
+                      onSelect: () => setSelectedImageId(newImage.id),
+                      isSelected: false,
+                    };
+                    setImages(prev => [...prev, newImage as MemeImageProps]);
+                    }
+                };
+                reader.readAsDataURL(file);
+              }
+            }}
+          />
         </div>
+      )}
       )}
     </div>
   );
