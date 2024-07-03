@@ -64,7 +64,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
     [onStartTalk, onStopTalk]
   );
 
-  const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'none');
+  const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'talk');
 
   const [recognitionState, setRecognitionState] = useState<'inactive' | 'active'>('inactive');
   const recognitionRef = useRef<any>(null);
