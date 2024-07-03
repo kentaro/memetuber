@@ -12,7 +12,7 @@ export default function StartButton() {
         window.open('/canvas', '_blank', 'width=960,height=540,menubar=no,toolbar=no,location=no,status=no,innerWidth=960,innerHeight=540');
       }}
     >
-      始めましょう！
+      Let&apos;s get started!
     </Link>
   );
 }
