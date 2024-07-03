@@ -47,13 +47,15 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [showMenu, setShowMenu] = useState(false);
   const [rotation, setRotation] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [speechState, setSpeechState] = useState<'inactive' | 'active' | 'speaking'>('inactive');
+  const recognitionRef = useRef<any>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // コンポーネント内で定義
   const debouncedSetIsSpeaking = useCallback(
     (value: boolean, id: string) => {
       debounce(() => {
-        setIsSpeaking(value);
+        setSpeechState(value ? 'speaking' : 'active');
         if (value) {
           onStartTalk(id);
         } else {
@@ -65,10 +67,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   );
 
   const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'talk');
-
-  const [recognitionState, setRecognitionState] = useState<'inactive' | 'active'>('inactive');
-  const recognitionRef = useRef<any>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleAnimationChange = useCallback((animation: string) => {
     setSelectedAnimation(animation);
@@ -82,9 +80,8 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    setIsSpeaking(false);
+    setSpeechState('inactive');
     onStopTalk(image.id);
-    setRecognitionState('inactive');
   }, [image.id, onStopTalk]);
 
   const startSpeechRecognition = useCallback(() => {
@@ -95,16 +92,18 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       recognitionRef.current.interimResults = true;
 
       recognitionRef.current.onstart = () => {
-        setRecognitionState('active');
+        setSpeechState('active');
       };
 
       recognitionRef.current.onresult = (event: any) => {
         const result = event.results[event.results.length - 1];
         if (!result.isFinal) {
-          setIsSpeaking(true);
+          setSpeechState('speaking');
+          onStartTalk(image.id);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = setTimeout(() => {
-            setIsSpeaking(false);
+            setSpeechState('active');
+            onStopTalk(image.id);
           }, 1000);
         }
       };
@@ -115,28 +114,28 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       };
 
       recognitionRef.current.onend = () => {
-        if (recognitionState === 'active') {
+        if (speechState !== 'inactive') {
           try {
             recognitionRef.current?.start();
           } catch (error) {
             console.error('音声認識の再開に失敗しました', error);
-            setRecognitionState('inactive');
+            setSpeechState('inactive');
           }
         }
       };
 
       try {
         recognitionRef.current.start();
-        setRecognitionState('active');
+        setSpeechState('active');
       } catch (error) {
         console.error('音声認識の開始に失敗しました', error);
-        setRecognitionState('inactive');
+        setSpeechState('inactive');
       }
     } else {
       console.error('音声認識がサポートされていません');
-      setRecognitionState('inactive');
+      setSpeechState('inactive');
     }
-  }, [image.id, debouncedSetIsSpeaking, stopSpeechRecognition, recognitionState]);
+  }, [image.id, onStartTalk, onStopTalk]);
 
   useEffect(() => {
     startSpeechRecognition();
@@ -283,7 +282,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           backgroundImage: `url(${image.src})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          animation: isSpeaking && selectedAnimation !== 'none'
+          animation: speechState === 'speaking' && selectedAnimation !== 'none'
             ? `${selectedAnimation} 0.5s ease-in-out infinite`
             : 'none',
         }}
@@ -340,26 +339,32 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           </div>
           <div className="mb-2">
             <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>
-            <p className="text-sm mb-1">
-              状態: <span className={`${isSpeaking ? 'text-green-600' : 'text-red-600'}`}>
-                {isSpeaking ? '話し中' : '待機中'}
+            <div className="flex items-center justify-between bg-gray-100 rounded-lg p-2">
+              <span className={`text-sm font-medium ${
+                speechState === 'speaking' ? 'text-green-600' :
+                speechState === 'active' ? 'text-blue-600' : 'text-gray-600'
+              }`}>
+                {speechState === 'speaking' ? '話し中' :
+                 speechState === 'active' ? '待機中' : '停止中'}
               </span>
-            </p>
-            <button
-              className={`text-left px-2 py-1 ${
-                recognitionState === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-              } hover:bg-gray-100 whitespace-nowrap w-full text-sm font-medium rounded`}
-              onClick={(e) => {
-                e.stopPropagation();
-                if (recognitionState === 'active') {
-                  stopSpeechRecognition();
-                } else {
-                  startSpeechRecognition();
-                }
-              }}
-            >
-              {recognitionState === 'active' ? 'マイク停止' : 'マイク再開'}
-            </button>
+              <button
+                className={`px-3 py-1 rounded-full text-white text-sm font-medium transition-colors ${
+                  speechState !== 'inactive'
+                    ? 'bg-red-500 hover:bg-red-600'
+                    : 'bg-green-500 hover:bg-green-600'
+                }`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (speechState === 'inactive') {
+                    startSpeechRecognition();
+                  } else {
+                    stopSpeechRecognition();
+                  }
+                }}
+              >
+                {speechState === 'inactive' ? '開始' : '停止'}
+              </button>
+            </div>
           </div>
           <button
             className="text-left px-2 py-1 bg-red-500 hover:bg-red-600 text-white whitespace-nowrap w-full mt-2 rounded text-sm font-medium"
