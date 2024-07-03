@@ -7,8 +7,6 @@ interface MemeImageProps {
     src: string;
     x: number;
     y: number;
-    animation: string;
-    isTalking: boolean;
     width: number;
     height: number;
     selectedAnimation: string;
@@ -52,7 +50,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [isRandomAnimating, setIsRandomAnimating] = useState(false);
 
   const [recognitionState, setRecognitionState] = useState<'inactive' | 'active'>('inactive');
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<any>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleAnimationChange = useCallback((animation: string) => {
@@ -84,7 +82,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
         setRecognitionState('active');
       };
 
-      recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
+      recognitionRef.current.onresult = (event: any) => {
         const result = event.results[event.results.length - 1];
         if (!result.isFinal) {
           setIsSpeaking(true);
@@ -98,7 +96,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       };
 
       recognitionRef.current.onerror = (event: any) => {
-        console.error('Speech recognition error', event.error);
+        console.error('音声認識エラー', event.error);
         stopSpeechRecognition();
       };
 
@@ -107,59 +105,55 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           try {
             recognitionRef.current?.start();
           } catch (error) {
-            console.error('Failed to restart speech recognition', error);
+            console.error('音声認識の再開に失敗しました', error);
             setRecognitionState('inactive');
           }
         }
       };
 
-      if (recognitionState === 'inactive') {
-        try {
-          recognitionRef.current.start();
-          setRecognitionState('active');
-        } catch (error) {
-          console.error('Failed to start speech recognition', error);
-          setRecognitionState('inactive');
-        }
-      } else {
-        console.warn('Speech recognition is already active');
+      try {
+        recognitionRef.current.start();
+        setRecognitionState('active');
+      } catch (error) {
+        console.error('音声認識の開始に失敗しました', error);
+        setRecognitionState('inactive');
       }
     } else {
-      console.error('Speech recognition not supported');
+      console.error('音声認識がサポートされていません');
       setRecognitionState('inactive');
     }
-  }, [image.id, onStartTalk, onStopTalk, stopSpeechRecognition]);
+  }, [image.id, onStartTalk, onStopTalk, stopSpeechRecognition, recognitionState]);
 
   useEffect(() => {
     startSpeechRecognition();
     return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      stopSpeechRecognition();
     };
-  }, [startSpeechRecognition]);
+  }, [startSpeechRecognition, stopSpeechRecognition]);
 
   useEffect(() => {
     let animationInterval: NodeJS.Timeout;
-    if (isRandomAnimating) {
+    if (isRandomAnimating && isSpeaking) {
       animationInterval = setInterval(() => {
         const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
         onAnimationChange(image.id, randomAnimation);
       }, 2000);
     }
     return () => clearInterval(animationInterval);
-  }, [isRandomAnimating, image.id, onAnimationChange, singleLoopAnimations]);
+  }, [isRandomAnimating, isSpeaking, image.id, onAnimationChange, singleLoopAnimations]);
 
   useEffect(() => {
-    if (isSpeaking && selectedAnimation !== 'none') {
-      onAnimationChange(image.id, selectedAnimation);
-    } else if (!isSpeaking) {
+    if (isSpeaking) {
+      if (selectedAnimation === 'random') {
+        const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
+        onAnimationChange(image.id, randomAnimation);
+      } else if (selectedAnimation !== 'none') {
+        onAnimationChange(image.id, selectedAnimation);
+      }
+    } else {
       onAnimationChange(image.id, 'none');
     }
-  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange]);
+  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange, singleLoopAnimations]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -274,7 +268,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
         border: isSelected ? '2px solid #3b82f6' : 'none',
         cursor: isResizing ? 'nwse-resize' : 'move',
         transform: `rotate(${rotation}deg)`,
-        animation: isSpeaking || isRandomAnimating ? `${selectedAnimation} 1s infinite ease-in-out` : 'none',
+        animation: isSpeaking ? `${selectedAnimation} 1s infinite ease-in-out` : 'none',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
