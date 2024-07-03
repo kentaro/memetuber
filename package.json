@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@tailwindcss/aspect-ratio": "^0.4.2",
     "@types/lodash": "^4.17.6",
     "lodash": "^4.17.21",
     "lucide-react": "^0.400.0",

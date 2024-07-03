@@ -8,13 +8,22 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        'y2k-blue': '#00FFFF',
+        'y2k-pink': '#FF69B4',
+        'y2k-yellow': '#FFFF00',
+        'y2k-purple': '#8A2BE2',
+      },
+      fontFamily: {
+        'y2k': ['Comic Sans MS', 'Arial', 'sans-serif'],
+      },
       backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+        'y2k-gradient': 'linear-gradient(45deg, #00FFFF, #FF69B4, #FFFF00)',
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/aspect-ratio'),
+  ],
 };
 export default config;
