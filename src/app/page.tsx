@@ -25,6 +25,10 @@ export default function Home() {
         <div className="flex justify-center">
           <StartButton />
         </div>
+        <footer className="mt-12 text-center text-y2k-orange">
+          <p>&copy; 2024 MemeTuber. All rights reserved.</p>
+          <p>Made with ❤️ by A Project That Cannot Be Named Yet</p>
+        </footer>
       </div>
     </main>
   );

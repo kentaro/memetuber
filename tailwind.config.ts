@@ -13,6 +13,7 @@ const config: Config = {
         'y2k-pink': '#FF69B4',
         'y2k-yellow': '#FFFF00',
         'y2k-purple': '#8A2BE2',
+        'y2k-orange': '#FFA500', // Added orange color
       },
       fontFamily: {
         'y2k': ['Comic Sans MS', 'Arial', 'sans-serif'],
