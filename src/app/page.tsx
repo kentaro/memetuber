@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 
 export default function Home() {
   return (
@@ -24,7 +23,7 @@ export default function Home() {
         </div>
         <div className="flex justify-center">
           <Link href="/canvas" className="bg-y2k-yellow text-black px-12 py-4 rounded-full text-3xl font-bold hover:bg-opacity-90 transition-colors y2k-border inline-block">
-            Let's Get Started!
+            Let&apos;s Get Started!
           </Link>
         </div>
       </div>

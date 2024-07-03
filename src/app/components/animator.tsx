@@ -207,7 +207,6 @@ const Animator = ({ className }: AnimatorProps) => {
           />
         </div>
       )}
-      )}
     </div>
   );
 };
