@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import StartButton from './components/start-button';
 
 export default function Home() {
   return (
@@ -22,9 +23,7 @@ export default function Home() {
           ></iframe>
         </div>
         <div className="flex justify-center">
-          <Link href="/canvas" className="bg-y2k-yellow text-black px-12 py-4 rounded-full text-3xl font-bold hover:bg-opacity-90 transition-colors y2k-border inline-block">
-            Let&apos;s Get Started!
-          </Link>
+          <StartButton />
         </div>
       </div>
     </main>
