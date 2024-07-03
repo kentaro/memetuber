@@ -104,12 +104,9 @@ const Animator = ({ className }: AnimatorProps) => {
   }, []);
 
   const changeAnimation = useCallback((id: string, animation: string) => {
-    setImages(prev => prev.map(img => {
-      if (img.id === id) {
-        return { ...img, selectedAnimation: animation, animation: animation };
-      }
-      return img;
-    }));
+    setImages(prev => prev.map(img =>
+      img.id === id ? { ...img, selectedAnimation: animation } : img
+    ));
   }, []);
 
   return (

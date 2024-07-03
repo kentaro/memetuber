@@ -10,6 +10,7 @@ interface MemeImageProps {
     width: number;
     height: number;
     selectedAnimation: string;
+    animation?: string; // Added animation property
   };
   onRemove: (id: string) => void;
   onAnimationChange: (id: string, animation: string) => void;
@@ -36,6 +37,16 @@ interface SpeechRecognitionResultList {
 interface SpeechRecognitionResult {
   isFinal: boolean;
 }
+
+const getRandomAnimation = (animations: string[]): string => {
+  const randomValue = Math.random();
+  if (randomValue < 0.6) {
+    return 'idle';
+  } else {
+    const otherAnimations = animations.filter(anim => anim !== 'idle');
+    return otherAnimations[Math.floor(Math.random() * otherAnimations.length)];
+  }
+};
 
 const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk, singleLoopAnimations }: MemeImageProps) => {
   const [position, setPosition] = useState({ x: image.x, y: image.y });
@@ -132,28 +143,25 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   }, [startSpeechRecognition, stopSpeechRecognition]);
 
   useEffect(() => {
-    let animationInterval: NodeJS.Timeout;
-    if (isRandomAnimating && isSpeaking) {
-      animationInterval = setInterval(() => {
-        const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
-        onAnimationChange(image.id, randomAnimation);
-      }, 2000);
-    }
-    return () => clearInterval(animationInterval);
-  }, [isRandomAnimating, isSpeaking, image.id, onAnimationChange, singleLoopAnimations]);
-
-  useEffect(() => {
-    if (isSpeaking) {
-      if (selectedAnimation === 'random') {
-        const randomAnimation = singleLoopAnimations[Math.floor(Math.random() * singleLoopAnimations.length)];
-        onAnimationChange(image.id, randomAnimation);
-      } else if (selectedAnimation !== 'none') {
-        onAnimationChange(image.id, selectedAnimation);
-      }
+    if (isSpeaking && selectedAnimation !== 'none') {
+      onAnimationChange(image.id, selectedAnimation);
     } else {
       onAnimationChange(image.id, 'none');
     }
-  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange, singleLoopAnimations]);
+  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange]);
+
+  useEffect(() => {
+    let animationInterval: NodeJS.Timeout;
+    if (selectedAnimation === 'random' && isSpeaking) {
+      const updateAnimation = () => {
+        const randomAnimation = getRandomAnimation(singleLoopAnimations);
+        onAnimationChange(image.id, randomAnimation);
+      };
+      updateAnimation();
+      animationInterval = setInterval(updateAnimation, 2000);
+    }
+    return () => clearInterval(animationInterval);
+  }, [selectedAnimation, isSpeaking, image.id, singleLoopAnimations, onAnimationChange]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -251,7 +259,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   }, []);
 
   useEffect(() => {
-    if (imageRef.current) {
+    if (imageRef.current && image.animation) {
       imageRef.current.style.animation = `${image.animation} 1s infinite ease-in-out`;
     }
   }, [image.animation]);
@@ -335,7 +343,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
               </button>
             ))}
             <button
-              className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full ${
+              className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full text-sm capitalize ${
                 isRandomAnimating ? 'bg-blue-100 font-semibold' : ''
               }`}
               onClick={(e) => {
