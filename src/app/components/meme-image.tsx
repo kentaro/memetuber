@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Menu, Maximize2 } from 'lucide-react';
+import { debounce } from 'lodash';
 
 interface MemeImageProps {
   image: {
@@ -10,7 +11,7 @@ interface MemeImageProps {
     width: number;
     height: number;
     selectedAnimation: string;
-    animation?: string; // Added animation property
+    animation?: string;
   };
   onRemove: (id: string) => void;
   onAnimationChange: (id: string, animation: string) => void;
@@ -38,16 +39,6 @@ interface SpeechRecognitionResult {
   isFinal: boolean;
 }
 
-const getRandomAnimation = (animations: string[]): string => {
-  const randomValue = Math.random();
-  if (randomValue < 0.6) {
-    return 'idle';
-  } else {
-    const otherAnimations = animations.filter(anim => anim !== 'idle');
-    return otherAnimations[Math.floor(Math.random() * otherAnimations.length)];
-  }
-};
-
 const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk, singleLoopAnimations }: MemeImageProps) => {
   const [position, setPosition] = useState({ x: image.x, y: image.y });
   const [size, setSize] = useState({ width: image.width || 200, height: image.height || 200 });
@@ -57,8 +48,23 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [rotation, setRotation] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  // コンポーネント内で定義
+  const debouncedSetIsSpeaking = useCallback(
+    (value: boolean, id: string) => {
+      debounce(() => {
+        setIsSpeaking(value);
+        if (value) {
+          onStartTalk(id);
+        } else {
+          onStopTalk(id);
+        }
+      }, 300)();
+    },
+    [onStartTalk, onStopTalk]
+  );
+
   const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'none');
-  const [isRandomAnimating, setIsRandomAnimating] = useState(false);
 
   const [recognitionState, setRecognitionState] = useState<'inactive' | 'active'>('inactive');
   const recognitionRef = useRef<any>(null);
@@ -67,7 +73,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const handleAnimationChange = useCallback((animation: string) => {
     setSelectedAnimation(animation);
     onAnimationChange(image.id, animation);
-    setIsRandomAnimating(animation === 'random');
   }, [image.id, onAnimationChange]);
 
   const stopSpeechRecognition = useCallback(() => {
@@ -96,12 +101,10 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       recognitionRef.current.onresult = (event: any) => {
         const result = event.results[event.results.length - 1];
         if (!result.isFinal) {
-          setIsSpeaking(true);
-          onStartTalk(image.id);
+          debouncedSetIsSpeaking(true, image.id);
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
           timeoutRef.current = setTimeout(() => {
-            setIsSpeaking(false);
-            onStopTalk(image.id);
+            debouncedSetIsSpeaking(false, image.id);
           }, 1000);
         }
       };
@@ -133,35 +136,28 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
       console.error('音声認識がサポートされていません');
       setRecognitionState('inactive');
     }
-  }, [image.id, onStartTalk, onStopTalk, stopSpeechRecognition, recognitionState]);
+  }, [image.id, debouncedSetIsSpeaking, stopSpeechRecognition, recognitionState]);
 
   useEffect(() => {
     startSpeechRecognition();
     return () => {
       stopSpeechRecognition();
     };
-  }, [startSpeechRecognition, stopSpeechRecognition]);
+  }, []);
 
   useEffect(() => {
-    if (isSpeaking && selectedAnimation !== 'none') {
-      onAnimationChange(image.id, selectedAnimation);
-    } else {
-      onAnimationChange(image.id, 'none');
-    }
-  }, [isSpeaking, selectedAnimation, image.id, onAnimationChange]);
+    const animationEndHandler = () => {
+      if (imageRef.current) {
+        imageRef.current.addEventListener('animationend', animationEndHandler);
+      }
 
-  useEffect(() => {
-    let animationInterval: NodeJS.Timeout;
-    if (selectedAnimation === 'random' && isSpeaking) {
-      const updateAnimation = () => {
-        const randomAnimation = getRandomAnimation(singleLoopAnimations);
-        onAnimationChange(image.id, randomAnimation);
+      return () => {
+        if (imageRef.current) {
+          imageRef.current.removeEventListener('animationend', animationEndHandler);
+        }
       };
-      updateAnimation();
-      animationInterval = setInterval(updateAnimation, 2000);
-    }
-    return () => clearInterval(animationInterval);
-  }, [selectedAnimation, isSpeaking, image.id, singleLoopAnimations, onAnimationChange]);
+    };
+  }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
@@ -276,7 +272,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
         border: isSelected ? '2px solid #3b82f6' : 'none',
         cursor: isResizing ? 'nwse-resize' : 'move',
         transform: `rotate(${rotation}deg)`,
-        animation: isSpeaking ? `${selectedAnimation} 1s infinite ease-in-out` : 'none',
       }}
       onMouseDown={handleMouseDown}
       onClick={handleClick}
@@ -288,8 +283,8 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
           backgroundImage: `url(${image.src})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
-          animation: isSpeaking
-            ? `${image.animation} 1s infinite ease-in-out`
+          animation: isSpeaking && selectedAnimation !== 'none'
+            ? `${selectedAnimation} 3s ease-in-out infinite`
             : 'none',
         }}
       />
@@ -342,17 +337,6 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
                 {anim}
               </button>
             ))}
-            <button
-              className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full text-sm capitalize ${
-                isRandomAnimating ? 'bg-blue-100 font-semibold' : ''
-              }`}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAnimationChange('random');
-              }}
-            >
-              Random
-            </button>
           </div>
           <div className="mb-2">
             <h3 className="font-bold mb-1 text-sm text-gray-600">マイクの状態</h3>

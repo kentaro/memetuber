@@ -117,14 +117,14 @@ const Animator = ({ className }: AnimatorProps) => {
       onDragOver={handleDragOver}
     >
       <style jsx global>{`
-        @keyframes idle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.03); } }
-        @keyframes walk { 0%, 100% { transform: translateX(-15px); } 50% { transform: translateX(15px); } }
-        @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(20deg); } }
-        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        @keyframes idle { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes walk { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(15px); } }
+        @keyframes wave { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(15deg); } }
+        @keyframes jump { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.1); opacity: 0.8; } }
-        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
-        @keyframes dance { 0%, 100% { transform: skew(0deg, 0deg) scale(1); } 25% { transform: skew(5deg, 5deg) scale(0.9); } 75% { transform: skew(-5deg, -5deg) scale(1.1); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
+        @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-5px); } 75% { transform: translateX(5px); } }
+        @keyframes dance { 0%, 100% { transform: skew(0deg, 0deg) scale(1); } 25% { transform: skew(3deg, 3deg) scale(0.95); } 75% { transform: skew(-3deg, -3deg) scale(1.05); } }
       `}</style>
       {images.map(image => (
         <MemeImage
@@ -140,7 +140,7 @@ const Animator = ({ className }: AnimatorProps) => {
       {images.length === 0 && (
         <div className="absolute inset-0 flex items-center justify-center">
           <p className="text-white text-center text-2xl">
-            Drag and drop your images here
+            画像をここにドラッグ＆ドロップしてください
           </p>
         </div>
       )}
