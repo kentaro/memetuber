@@ -138,8 +138,6 @@ const Animator = ({ className }: AnimatorProps) => {
           onStartTalk={startTalk}
           onStopTalk={stopTalk}
           singleLoopAnimations={singleLoopAnimations}
-          onSelect={() => setSelectedImageId(image.id)}
-          isSelected={selectedImageId === image.id}
         />
       ))}
       {images.length === 0 && (

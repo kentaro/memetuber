@@ -48,10 +48,12 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   const [rotation, setRotation] = useState(0);
   const imageRef = useRef<HTMLDivElement>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const [isRandomAnimating, setIsRandomAnimating] = useState(false);
-  const [isMicActive, setIsMicActive] = useState(true);
   const [selectedAnimation, setSelectedAnimation] = useState(image.selectedAnimation || 'none');
+  const [isRandomAnimating, setIsRandomAnimating] = useState(false);
+
+  const [recognitionState, setRecognitionState] = useState<'inactive' | 'active'>('inactive');
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleAnimationChange = useCallback((animation: string) => {
     setSelectedAnimation(animation);
@@ -59,61 +61,81 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
     setIsRandomAnimating(animation === 'random');
   }, [image.id, onAnimationChange]);
 
+  const stopSpeechRecognition = useCallback(() => {
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    setIsSpeaking(false);
+    onStopTalk(image.id);
+    setRecognitionState('inactive');
+  }, [image.id, onStopTalk]);
+
   const startSpeechRecognition = useCallback(() => {
+    if (recognitionState !== 'inactive') return;
+
+    setRecognitionState('active');
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
       const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       recognitionRef.current = new SpeechRecognitionAPI();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
 
+      recognitionRef.current.onstart = () => {
+        setRecognitionState('active');
+      };
+
       recognitionRef.current.onresult = (event: SpeechRecognitionEvent) => {
         const result = event.results[event.results.length - 1];
-        if (result.isFinal) {
-          setIsSpeaking(false);
-          onStopTalk(image.id);
-        } else {
+        if (!result.isFinal) {
           setIsSpeaking(true);
           onStartTalk(image.id);
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            setIsSpeaking(false);
+            onStopTalk(image.id);
+          }, 1000);
         }
       };
 
-      recognitionRef.current.onend = () => {
-        setIsSpeaking(false);
-        setIsMicActive(false);
+      recognitionRef.current.onerror = (event: any) => {
+        console.error('Speech recognition error', event.error);
+        stopSpeechRecognition();
       };
 
-      recognitionRef.current.start();
-      setIsMicActive(true);
+      recognitionRef.current.onend = () => {
+        if (recognitionState === 'active') {
+          recognitionRef.current?.start();
+        } else {
+          setRecognitionState('inactive');
+        }
+      };
+
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Failed to start speech recognition', error);
+        setRecognitionState('inactive');
+      }
     } else {
       console.error('Speech recognition not supported');
+      setRecognitionState('inactive');
     }
-  }, [image.id, onStartTalk, onStopTalk]);
-
-  const restartSpeechRecognition = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-    startSpeechRecognition();
-    setIsMicActive(true);
-  }, [startSpeechRecognition]);
-
-  const stopSpeechRecognition = useCallback(() => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      setIsMicActive(false);
-    }
-  }, []);
+  }, [image.id, onStartTalk, onStopTalk, recognitionState]);
 
   useEffect(() => {
     startSpeechRecognition();
     return () => {
-      stopSpeechRecognition();
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [startSpeechRecognition, stopSpeechRecognition]);
-
-  const toggleRandomAnimation = useCallback(() => {
-    setIsRandomAnimating(prev => !prev);
-  }, []);
+  }, [startSpeechRecognition]);
 
   useEffect(() => {
     let animationInterval: NodeJS.Timeout;
@@ -127,9 +149,9 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
   }, [isRandomAnimating, image.id, onAnimationChange, singleLoopAnimations]);
 
   useEffect(() => {
-    if (isSpeaking) {
+    if (isSpeaking && selectedAnimation !== 'none') {
       onAnimationChange(image.id, selectedAnimation);
-    } else {
+    } else if (!isSpeaking) {
       onAnimationChange(image.id, 'none');
     }
   }, [isSpeaking, selectedAnimation, image.id, onAnimationChange]);
@@ -314,7 +336,7 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
               </button>
             ))}
             <button
-              className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full text-sm ${
+              className={`text-left px-2 py-1 hover:bg-gray-100 whitespace-nowrap w-full ${
                 isRandomAnimating ? 'bg-blue-100 font-semibold' : ''
               }`}
               onClick={(e) => {
@@ -334,18 +356,18 @@ const MemeImage = ({ image, onRemove, onAnimationChange, onStartTalk, onStopTalk
             </p>
             <button
               className={`text-left px-2 py-1 ${
-                isMicActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                recognitionState === 'active' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
               } hover:bg-gray-100 whitespace-nowrap w-full text-sm font-medium rounded`}
               onClick={(e) => {
                 e.stopPropagation();
-                if (isMicActive) {
+                if (recognitionState === 'active') {
                   stopSpeechRecognition();
                 } else {
-                  restartSpeechRecognition();
+                  startSpeechRecognition();
                 }
               }}
             >
-              {isMicActive ? 'マイク停止' : 'マイク再開'}
+              {recognitionState === 'active' ? 'マイク停止' : 'マイク再開'}
             </button>
           </div>
           <button
