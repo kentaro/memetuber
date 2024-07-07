@@ -15,7 +15,7 @@ export default function Home() {
           <iframe
             width="560"
             height="315"
-            src="https://www.youtube.com/embed/SHdDdfYAM88"
+            src="https://www.youtube.com/embed/2eKPOhVqkPg"
             title="YouTube動画"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
