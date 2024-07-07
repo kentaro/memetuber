@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "MemeTuber",
-  description: "The most easy way to become a VTuber!",
+  description: "The easiest way to become a VTuber in the world!",
 };
 
 export default function RootLayout({
